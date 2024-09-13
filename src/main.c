@@ -13,6 +13,13 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 
 #include <nrfx_clock.h>
 #include <zephyr/kernel.h>
+//for sensor
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/logging/log.h>
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/shell/shell.h>
@@ -58,6 +65,24 @@ static K_SEM_DEFINE(wifi_ready_state_changed_sem, 0, 1);
 static bool wifi_ready_status;
 #endif /* CONFIG_WIFI_READY_LIB */
 
+
+//PPD for sensor 
+#define TMP117_NODE DT_COMPAT_GET_ANY_STATUS_OKAY(ti_tmp116)
+
+
+//for sensor 
+void i2c_scan(const struct device *i2c_dev) {
+    uint8_t i2c_addr;
+    LOG_INF("Starting I2C scan...");
+
+    for (i2c_addr = 0x03; i2c_addr <= 0x77; i2c_addr++) {
+        if (i2c_write(i2c_dev, NULL, 0, i2c_addr) == 0) {
+            LOG_INF("I2C device found at address 0x%02X", i2c_addr);
+        }
+    }
+
+    LOG_INF("I2C scan complete.");
+}
 static struct {
 	const struct shell *sh;
 	union {
@@ -401,6 +426,43 @@ static int register_wifi_ready(void)
 
 int main(void)
 {
+	//sensor
+	 const struct device *i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
+    if (!device_is_ready(i2c_dev)) {
+        LOG_ERR("I2C device is not ready");
+        return -1;
+    }
+	// Perform an I2C scan to detect connected devices
+    i2c_scan(i2c_dev);
+
+    // Get the TMP117 device using the device tree node
+    const struct device *const dev = DEVICE_DT_GET(TMP117_NODE);
+
+    // Check if the TMP117 device was found
+    if (!dev) {
+        LOG_ERR("Failed to find TMP117 device");
+        return -1;
+    }
+
+    // Check if the TMP117 device is ready
+    if (!device_is_ready(dev)) {
+        LOG_ERR("TMP117 device is not ready");
+        return -1;
+    }
+
+	 struct sensor_value temp;
+
+    // Fetch sensor sample and handle errors
+    if (sensor_sample_fetch(dev) < 0) {
+        LOG_ERR("Sensor sample update error");
+        return -1;
+    }
+
+    // Get the ambient temperature data
+    sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+    float temperature = temp.val1 + (temp.val2 / 1000000.0);
+     LOG_INF("Temperature: %d.%06d C", temp.val1, temp.val2);
+
 	int ret = 0;
 
 	net_mgmt_callback_init();
@@ -415,4 +477,6 @@ int main(void)
 	start_app();
 #endif /* CONFIG_WIFI_READY_LIB */
 	return ret;
+
+
 }
