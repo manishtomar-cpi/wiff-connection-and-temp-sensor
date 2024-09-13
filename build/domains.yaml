@@ -1,0 +1,7 @@
+default: sta
+build_dir: C:/ncs/v2.7.0/nrf/samples/wifi/sta/build
+domains:
+  - name: sta
+    build_dir: C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta
+flash_order:
+  - sta

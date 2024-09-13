@@ -1,0 +1,13 @@
+# Target labels
+ sta
+# Source files and their labels
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/CMakeFiles/sta
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/CMakeFiles/sta.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/CMakeFiles/sta-complete.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-build.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-configure.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-download.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-install.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-mkdir.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-patch.rule
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/_sysbuild/sysbuild/images/sta-prefix/src/sta-stamp/sta-update.rule
