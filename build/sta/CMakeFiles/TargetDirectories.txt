@@ -173,6 +173,8 @@ C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/config/CMakeF
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/config/CMakeFiles/rebuild_cache.dir
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/sockets/CMakeFiles/edit_cache.dir
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/sockets/CMakeFiles/rebuild_cache.dir
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/tls_credentials/CMakeFiles/edit_cache.dir
+C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/tls_credentials/CMakeFiles/rebuild_cache.dir
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/dhcpv4/CMakeFiles/subsys__net__lib__dhcpv4.dir
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/dhcpv4/CMakeFiles/edit_cache.dir
 C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/subsys/net/lib/dhcpv4/CMakeFiles/rebuild_cache.dir
