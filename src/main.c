@@ -19,9 +19,13 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
 
+//for firebase 
+#include <zephyr/net/socket.h>
+
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/init.h>
@@ -83,6 +87,128 @@ void i2c_scan(const struct device *i2c_dev) {
 
     LOG_INF("I2C scan complete.");
 }
+
+//firebase 
+// Firebase server details
+#define FIREBASE_HOST "nordic-data-default-rtdb.europe-west1.firebasedatabase.app"
+#define FIREBASE_IP "34.107.226.223"
+#define FIREBASE_PORT "80"  // HTTP
+#define FIREBASE_PATH "/data.json"
+
+#define REQUEST_TEMPLATE \
+    "PUT " FIREBASE_PATH " HTTP/1.1\r\n" \
+    "Host: " FIREBASE_HOST "\r\n" \
+    "Content-Type: application/json\r\n" \
+    "Content-Length: %d\r\n\r\n" \
+    "%s"
+
+static char response[1024];
+// Function to send temperature data to Firebase using HTTP
+int send_temperature_to_firebase(float temperature) {
+    static struct addrinfo hints;
+    struct addrinfo *res;
+    int sock, ret;
+    char *json_payload;
+    char *request;
+
+    LOG_INF("Preparing to send temperature data to Firebase");
+
+    // Dynamically allocate memory for the JSON payload
+    // Assuming the maximum payload size would be around 128 bytes
+    json_payload = (char *)malloc(128 * sizeof(char));
+    if (json_payload == NULL) {
+        LOG_ERR("Failed to allocate memory for JSON payload");
+        return -1;
+    }
+
+    // Create the JSON payload
+    snprintf(json_payload, 128, "{\"temperature\": %.2f}", temperature);
+    LOG_INF("JSON Payload: %s", json_payload);
+
+    // Dynamically allocate memory for the HTTP request
+    // Assuming the maximum request size would be around 512 bytes
+    request = (char *)malloc(512 * sizeof(char));
+    if (request == NULL) {
+        LOG_ERR("Failed to allocate memory for HTTP request");
+        free(json_payload); // Clean up previously allocated memory
+        return -1;
+    }
+
+    // Create the HTTP request
+    snprintf(request, 512, REQUEST_TEMPLATE, strlen(json_payload), json_payload);
+    LOG_INF("HTTP Request: %s", request);
+
+    // Initialize hints for the socket
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    // Resolve the Firebase IP address
+    ret = getaddrinfo(FIREBASE_IP, FIREBASE_PORT, &hints, &res);
+    if (ret != 0) {
+        LOG_ERR("Unable to resolve Firebase address, quitting");
+        free(json_payload);
+        free(request);
+        return -1;
+    }
+
+    // Create a non-TLS socket (for HTTP)
+    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (sock < 0) {
+        LOG_ERR("Failed to create socket");
+        freeaddrinfo(res);
+        free(json_payload);
+        free(request);
+        return -1;
+    }
+
+    // Connect to the Firebase server
+    ret = connect(sock, res->ai_addr, res->ai_addrlen);
+    if (ret < 0) {
+        LOG_ERR("Failed to connect to Firebase");
+        close(sock);
+        freeaddrinfo(res);
+        free(json_payload);
+        free(request);
+        return -1;
+    }
+
+    // Send the HTTP request
+    ret = send(sock, request, strlen(request), 0);
+    if (ret < 0) {
+        LOG_ERR("Failed to send request to Firebase");
+        close(sock);
+        freeaddrinfo(res);
+        free(json_payload);
+        free(request);
+        return -1;
+    }
+
+    LOG_INF("Request sent to Firebase");
+
+    // Receive the response from Firebase
+    while (1) {
+        int len = recv(sock, response, sizeof(response) - 1, 0);
+        if (len < 0) {
+            LOG_ERR("Error reading response");
+            break;
+        }
+        if (len == 0) {
+            break;
+        }
+        response[len] = 0;
+        LOG_INF("Response: %s", response);
+    }
+
+    // Clean up
+    close(sock);
+    freeaddrinfo(res);
+    free(json_payload);  // Free dynamically allocated memory
+    free(request);       // Free dynamically allocated memory
+
+    return 0;
+}
+
+
 static struct {
 	const struct shell *sh;
 	union {
@@ -426,57 +552,59 @@ static int register_wifi_ready(void)
 
 int main(void)
 {
-	//sensor
-	 const struct device *i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
+    // Sensor initialization
+    const struct device *i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
     if (!device_is_ready(i2c_dev)) {
         LOG_ERR("I2C device is not ready");
         return -1;
     }
-	// Perform an I2C scan to detect connected devices
+    
+    // Perform an I2C scan to detect connected devices
     i2c_scan(i2c_dev);
 
     // Get the TMP117 device using the device tree node
     const struct device *const dev = DEVICE_DT_GET(TMP117_NODE);
-
-    // Check if the TMP117 device was found
-    if (!dev) {
-        LOG_ERR("Failed to find TMP117 device");
-        return -1;
-    }
-
-    // Check if the TMP117 device is ready
     if (!device_is_ready(dev)) {
         LOG_ERR("TMP117 device is not ready");
         return -1;
     }
 
-	 struct sensor_value temp;
+    struct sensor_value temp;
 
-    // Fetch sensor sample and handle errors
+    // Wi-Fi connection
+    int ret = 0;
+    net_mgmt_callback_init();
+
+#ifdef CONFIG_WIFI_READY_LIB
+    ret = register_wifi_ready();
+    if (ret) {
+        return ret;
+    }
+    k_thread_start(start_wifi_thread_id);
+#else
+    start_app();
+#endif /* CONFIG_WIFI_READY_LIB */
+
+    // Poll for Wi-Fi connection status
+    while (!context.connected) {
+        LOG_INF("Waiting for Wi-Fi to connect...");
+        k_sleep(K_MSEC(500));  // Poll every 500 ms
+    }
+
+    LOG_INF("Wi-Fi connected, proceeding to fetch temperature data.");
+
+    // Now that Wi-Fi is connected, fetch sensor data
     if (sensor_sample_fetch(dev) < 0) {
         LOG_ERR("Sensor sample update error");
         return -1;
     }
 
-    // Get the ambient temperature data
     sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
     float temperature = temp.val1 + (temp.val2 / 1000000.0);
-     LOG_INF("Temperature: %d.%06d C", temp.val1, temp.val2);
+    LOG_INF("Temperature: %d.%06d C", temp.val1, temp.val2);
 
-	int ret = 0;
+    // Send the temperature data to Firebase
+    send_temperature_to_firebase(temperature);
 
-	net_mgmt_callback_init();
-
-#ifdef CONFIG_WIFI_READY_LIB
-	ret = register_wifi_ready();
-	if (ret) {
-		return ret;
-	}
-	k_thread_start(start_wifi_thread_id);
-#else
-	start_app();
-#endif /* CONFIG_WIFI_READY_LIB */
-	return ret;
-
-
+    return ret;
 }
