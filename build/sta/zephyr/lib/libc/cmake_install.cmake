@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/lib/libc/picolibc/cmake_install.cmake")
+  include("C:/ncs/v2.7.0/nrf/samples/wifi/sta/build/sta/zephyr/lib/libc/newlib/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
